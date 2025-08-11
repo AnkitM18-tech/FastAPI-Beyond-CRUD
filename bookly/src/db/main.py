@@ -8,7 +8,7 @@ engine = AsyncEngine(
     create_engine(url=Config.DATABASE_URI, echo=True)
 )
 
-async def init_db():
+async def init_db() -> None:
     async with engine.begin() as conn:
         from src.books.models import Book
         await conn.run_sync(SQLModel.metadata.create_all)
