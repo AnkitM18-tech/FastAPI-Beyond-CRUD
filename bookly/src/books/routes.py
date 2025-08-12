@@ -7,24 +7,26 @@ from src.books.schemas import Books, BookUpdate, BookCreateModel
 from src.books.service import BookService
 # from src.books.book_data import books
 from src.db.main import get_session
+from src.auth.dependencies import AccessTokenBearer
 
 book_router = APIRouter()
 book_service = BookService()
+access_token_bearer = AccessTokenBearer()
 
 @book_router.get("/", response_model= List[Books])
-async def get_all_books(session: AsyncSession = Depends(get_session)):
+async def get_all_books(session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)):
     books = await book_service.get_all_books(session)
     return books
 
 @book_router.post("/", status_code= status.HTTP_201_CREATED, response_model=Books)
-async def publish_a_book(book: BookCreateModel, session: AsyncSession = Depends(get_session)) -> dict:
+async def publish_a_book(book: BookCreateModel, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # new_book = book.model_dump()
     new_book = await book_service.create_book(book, session)
     # books.append(new_book)
     return new_book
 
 @book_router.get("/{book_id}", response_model=Books)
-async def get_a_book(book_id: str, session: AsyncSession = Depends(get_session)) -> dict:
+async def get_a_book(book_id: str, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # for book in books:
     #     if book["id"] == book_id:
     #         return book
@@ -34,7 +36,7 @@ async def get_a_book(book_id: str, session: AsyncSession = Depends(get_session))
     return book
 
 @book_router.patch("/{book_id}", response_model=Books)
-async def update_a_book(book_id: str, update_book: BookUpdate, session: AsyncSession = Depends(get_session)) -> dict:
+async def update_a_book(book_id: str, update_book: BookUpdate, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # for book in books:
     #     if book["id"] == book_id:
     #         book['title'] = update_book.title
@@ -50,7 +52,7 @@ async def update_a_book(book_id: str, update_book: BookUpdate, session: AsyncSes
     return updated_book
 
 @book_router.delete("/{book_id}", status_code= status.HTTP_204_NO_CONTENT)
-async def delete_a_book(book_id: str, session: AsyncSession = Depends(get_session)):
+async def delete_a_book(book_id: str, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)):
     # for book in books:
     #     if book["id"] == book_id:
     #         books.remove(book)
