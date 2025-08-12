@@ -7,25 +7,26 @@ from src.books.schemas import Books, BookUpdate, BookCreateModel
 from src.books.service import BookService
 # from src.books.book_data import books
 from src.db.main import get_session
-from src.auth.dependencies import AccessTokenBearer
+from src.auth.dependencies import AccessTokenBearer, RoleChecker
 
 book_router = APIRouter()
 book_service = BookService()
 access_token_bearer = AccessTokenBearer()
+role_checker = Depends(RoleChecker(["admin", "user"]))
 
-@book_router.get("/", response_model= List[Books])
+@book_router.get("/", response_model= List[Books], dependencies=[role_checker])
 async def get_all_books(session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)):
     books = await book_service.get_all_books(session)
     return books
 
-@book_router.post("/", status_code= status.HTTP_201_CREATED, response_model=Books)
+@book_router.post("/", status_code= status.HTTP_201_CREATED, response_model=Books, dependencies=[role_checker])
 async def publish_a_book(book: BookCreateModel, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # new_book = book.model_dump()
     new_book = await book_service.create_book(book, session)
     # books.append(new_book)
     return new_book
 
-@book_router.get("/{book_id}", response_model=Books)
+@book_router.get("/{book_id}", response_model=Books, dependencies=[role_checker])
 async def get_a_book(book_id: str, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # for book in books:
     #     if book["id"] == book_id:
@@ -35,7 +36,7 @@ async def get_a_book(book_id: str, session: AsyncSession = Depends(get_session),
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     return book
 
-@book_router.patch("/{book_id}", response_model=Books)
+@book_router.patch("/{book_id}", response_model=Books, dependencies=[role_checker])
 async def update_a_book(book_id: str, update_book: BookUpdate, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)) -> dict:
     # for book in books:
     #     if book["id"] == book_id:
@@ -51,7 +52,7 @@ async def update_a_book(book_id: str, update_book: BookUpdate, session: AsyncSes
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
     return updated_book
 
-@book_router.delete("/{book_id}", status_code= status.HTTP_204_NO_CONTENT)
+@book_router.delete("/{book_id}", status_code= status.HTTP_204_NO_CONTENT, dependencies=[role_checker])
 async def delete_a_book(book_id: str, session: AsyncSession = Depends(get_session), user_details= Depends(access_token_bearer)):
     # for book in books:
     #     if book["id"] == book_id:

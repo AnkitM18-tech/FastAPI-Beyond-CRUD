@@ -8,10 +8,11 @@ from .service import UserService
 from .utils import create_access_token, verify_access_token, verify_password
 from src.db.main import get_session
 from src.db.redis import add_jti_to_blocklist
-from .dependencies import RefreshTokenBearer, AccessTokenBearer
+from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
 
 auth_router = APIRouter()
 user_service = UserService()
+role_checker = RoleChecker(["admin", "user"])
 REFRESH_TOKEN_EXPIRY = 2
 
 @auth_router.post("/signup", response_model=UserModel, status_code=status.HTTP_201_CREATED)
@@ -37,7 +38,7 @@ async def login_user(user_data: UserLogin, session: AsyncSession = Depends(get_s
     if not verify_password(password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
 
-    access_token = create_access_token({"email": user.email, "user_uid": str(user.uid)})
+    access_token = create_access_token({"email": user.email, "user_uid": str(user.uid), "role": user.role})
     refresh_token = create_access_token({"email": user.email, "user_uid": str(user.uid)}, refresh=True, expiry=timedelta(days= REFRESH_TOKEN_EXPIRY))
 
     return JSONResponse(
@@ -47,7 +48,8 @@ async def login_user(user_data: UserLogin, session: AsyncSession = Depends(get_s
             "refresh_token": refresh_token,
             "user": {
                 "email": user.email,
-                "uid": str(user.uid)
+                "uid": str(user.uid),
+                "role": user.role
             }
         }
     )
@@ -67,6 +69,10 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
         )
     
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token has expired")
+
+@auth_router.get("/me", response_model=UserModel)
+async def get_current_user(user: UserModel = Depends(get_current_user), _: bool= Depends(role_checker)):
+    return user
 
 @auth_router.get("/logout", status_code=status.HTTP_200_OK)
 async def revoke_token(token_details: dict = Depends(AccessTokenBearer())):
