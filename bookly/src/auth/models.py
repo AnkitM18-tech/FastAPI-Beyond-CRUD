@@ -31,6 +31,12 @@ class User(SQLModel, table= True):
         )
     )
     is_verified: bool = Field(default=False)
+    role: str = Field(
+        sa_column=Column(
+            pg.VARCHAR,
+            nullable=False,
+            server_default="user"
+        ))
 
     def __repr__(self):
         return f"<User ({self.username})>"
