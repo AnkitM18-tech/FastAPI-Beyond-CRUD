@@ -1,8 +1,9 @@
-from sqlmodel import SQLModel, Field, Column
+from sqlmodel import SQLModel, Field, Column, Relationship
 import sqlalchemy.dialects.postgresql as pg
 from datetime import datetime, date
 import uuid
 from typing import Optional
+from src.auth import models
 
 class Book(SQLModel, table=True):
     __tablename__ = "books"
@@ -36,6 +37,7 @@ class Book(SQLModel, table=True):
             default=datetime.now()
         )
     )
+    user: Optional["models.User"] = Relationship(back_populates="books")
 
     def __repr__(self):
         return f"<Book(title={self.title})>"
