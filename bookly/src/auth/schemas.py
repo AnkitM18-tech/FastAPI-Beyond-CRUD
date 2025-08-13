@@ -22,6 +22,8 @@ class UserModel(BaseModel):
     created_at: datetime
     updated_at: datetime 
     is_verified: bool
+
+class UserBooks(UserModel):
     books: List[Books]
 
 class UserLogin(BaseModel):
