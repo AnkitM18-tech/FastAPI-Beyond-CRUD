@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, status
+from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from src.db.models import User
 from src.db.main import get_session
@@ -18,3 +19,20 @@ async def add_review_to_book(book_id: str, review_data: CreateReview, current_us
         session= session
     )
     return new_review
+
+@review_router.get("/{review_id}", response_model=Review)
+async def get_a_review_by_id(review_id: str, session: AsyncSession = Depends(get_session)):
+    review = await review_service.get_review_by_id(review_id, session)
+    if review is not None:
+        return review
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+
+@review_router.delete("/{review_id}", status_code= status.HTTP_204_NO_CONTENT)
+async def delete_a_review_by_id(review_id: str, session: AsyncSession = Depends(get_session), current_user: User = Depends(get_current_user)):
+    review = await review_service.get_review_by_id(review_id, session)
+    if current_user.uid != review.user_uid:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+    if review is not None:
+        await review_service.delete_review_by_id(review_id, session)
+        return {}
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
