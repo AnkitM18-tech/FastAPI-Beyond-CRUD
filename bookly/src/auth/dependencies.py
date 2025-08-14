@@ -9,7 +9,7 @@ from .utils import verify_access_token
 from src.db.redis import token_in_blocklist
 from src.db.main import get_session
 from .service import UserService
-from .models import User
+from src.db.models import User
 
 user_service = UserService()
 

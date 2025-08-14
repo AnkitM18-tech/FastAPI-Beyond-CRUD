@@ -1,6 +1,6 @@
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
-from .models import User
+from src.db.models import User
 from .schemas import CreateUser
 from .utils import generate_hash
 

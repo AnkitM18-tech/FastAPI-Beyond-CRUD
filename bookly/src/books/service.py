@@ -2,7 +2,7 @@ from datetime import datetime
 from sqlmodel import select, desc
 from sqlmodel.ext.asyncio.session import AsyncSession
 from .schemas import BookCreateModel, BookUpdate
-from .models import Book
+from src.db.models import Book
 
 class BookService:
     async def get_all_books(self, session: AsyncSession):

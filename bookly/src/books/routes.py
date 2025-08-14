@@ -3,7 +3,7 @@ from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
 from typing import List
 from src.books.schemas import Books, BookUpdate, BookCreateModel
-# from src.books.models import Book
+# from src.db.models import Book
 from src.books.service import BookService
 # from src.books.book_data import books
 from src.db.main import get_session
