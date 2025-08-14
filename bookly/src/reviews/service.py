@@ -1,5 +1,6 @@
 from fastapi import status
 from fastapi.exceptions import HTTPException
+from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 import logging
 from src.db.models import Review
@@ -28,6 +29,28 @@ class ReviewService:
             session.add(new_review)
             await session.commit()
             return new_review
+        except Exception as e:
+            logging.exception(e)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    
+    async def get_review_by_id(self, review_id: str, session: AsyncSession):
+        try:
+            statement = select(Review).where(Review.uid == review_id)
+            result = await session.exec(statement)
+            return result.first()
+        except Exception as e:
+            logging.exception(e)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    
+    async def delete_review_by_id(self, review_id: str, session: AsyncSession):
+        try:
+            review_to_delete = await self.get_review_by_id(review_id, session)
+            if review_to_delete is not None:
+                await session.delete(review_to_delete)
+                await session.commit()
+                return {}
+            else:
+                return None
         except Exception as e:
             logging.exception(e)
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
