@@ -1,4 +1,7 @@
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.requests import Request
 import time
 import logging
@@ -18,4 +21,19 @@ def register_middleware(app: FastAPI):
     
     @app.middleware("http")
     async def authorization(request: Request, call_next):
-        pass
+        if "Authorization" not in request.headers:
+            return JSONResponse(status_code=401, content={"message": "Missing Authorization Header", "resolution": "Please provide the right credentials to proceed"})
+        return await call_next(request)
+    
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=["*"],
+    )
