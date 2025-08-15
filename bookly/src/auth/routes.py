@@ -5,10 +5,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from datetime import timedelta, datetime
 from .schemas import CreateUser, UserModel, UserLogin, UserBooks
 from .service import UserService
-from .utils import create_access_token, verify_access_token, verify_password
+from .utils import create_access_token, verify_password
 from src.db.main import get_session
 from src.db.redis import add_jti_to_blocklist
 from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
+from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken
 
 auth_router = APIRouter()
 user_service = UserService()
@@ -21,7 +22,7 @@ async def create_user_account(user_data: CreateUser, session: AsyncSession = Dep
     user_exists = await user_service.user_exists(email, session)
 
     if user_exists:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="User already exists")
+        raise UserAlreadyExists()
 
     new_user = await user_service.create_user(user_data, session)
     return new_user
@@ -33,10 +34,10 @@ async def login_user(user_data: UserLogin, session: AsyncSession = Depends(get_s
     user = await user_service.get_user_by_email(email, session)
 
     if user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise InvalidCredentials()
 
     if not verify_password(password, user.password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise InvalidCredentials()
 
     access_token = create_access_token({"email": user.email, "user_uid": str(user.uid), "role": user.role})
     refresh_token = create_access_token({"email": user.email, "user_uid": str(user.uid)}, refresh=True, expiry=timedelta(days= REFRESH_TOKEN_EXPIRY))
@@ -68,7 +69,7 @@ async def get_new_access_token(token_details: dict = Depends(RefreshTokenBearer(
             }
         )
     
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token has expired")
+    raise InvalidToken()
 
 @auth_router.get("/me", response_model=UserBooks)
 async def get_current_user(user: UserModel = Depends(get_current_user), _: bool= Depends(role_checker)):

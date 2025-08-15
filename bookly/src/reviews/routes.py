@@ -6,6 +6,7 @@ from src.db.main import get_session
 from src.auth.dependencies import get_current_user
 from .schemas import CreateReview, Review
 from .service import ReviewService
+from src.errors import ReviewNotFound, InsufficientPermission
 
 review_router = APIRouter()
 review_service = ReviewService()
@@ -25,14 +26,14 @@ async def get_a_review_by_id(review_id: str, session: AsyncSession = Depends(get
     review = await review_service.get_review_by_id(review_id, session)
     if review is not None:
         return review
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    raise ReviewNotFound()
 
 @review_router.delete("/{review_id}", status_code= status.HTTP_204_NO_CONTENT)
 async def delete_a_review_by_id(review_id: str, session: AsyncSession = Depends(get_session), current_user: User = Depends(get_current_user)):
     review = await review_service.get_review_by_id(review_id, session)
     if current_user.uid != review.user_uid:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorized to perform this action")
+        raise InsufficientPermission()
     if review is not None:
         await review_service.delete_review_by_id(review_id, session)
         return {}
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found")
+    raise ReviewNotFound()
