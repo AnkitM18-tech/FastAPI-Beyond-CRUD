@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import HTTPException
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -10,8 +10,9 @@ from src.db.main import get_session
 from src.db.redis import add_jti_to_blocklist
 from .dependencies import RefreshTokenBearer, AccessTokenBearer, get_current_user, RoleChecker
 from src.errors import UserAlreadyExists, InvalidCredentials, InvalidToken, UserNotFound
-from src.mail import mail, create_message
+# from src.mail import mail, create_message
 from src.config import Config
+from src.celery_tasks import send_email
 
 auth_router = APIRouter()
 user_service = UserService()
@@ -19,17 +20,19 @@ role_checker = RoleChecker(["admin", "user"])
 REFRESH_TOKEN_EXPIRY = 2
 
 @auth_router.post("/send_mail")
-async def send_mail(emails: Email, session: AsyncSession = Depends(get_session)):
+async def send_mail(emails: Email):
     emails = emails.email_addresses
     html = "<h1>Welcome to the App!</h1>"
-    message = create_message(emails, "Welcome", html)
+    subject = "Welcome to Bookly"
 
-    await mail.send_message(message)
+    # message = create_message(emails, "Welcome", html)
+    # await mail.send_message(message)
+    send_email.delay(emails, subject, html)
 
     return {"message": "Email sent successfully"}
 
 @auth_router.post("/signup", status_code=status.HTTP_201_CREATED)
-async def create_user_account(user_data: CreateUser, session: AsyncSession = Depends(get_session)):
+async def create_user_account(user_data: CreateUser, bg_tasks: BackgroundTasks, session: AsyncSession = Depends(get_session)):
     email = user_data.email
     user_exists = await user_service.user_exists(email, session)
 
@@ -45,9 +48,11 @@ async def create_user_account(user_data: CreateUser, session: AsyncSession = Dep
     <p>Please click the link below to verify your email address:</p>
     <a href="{link}">Verify Email</a>
     """
-    message = create_message([email], "Verify Your Email - Bookly", html_message)
+    # message = create_message([email], "Verify Your Email - Bookly", html_message)
 
-    await mail.send_message(message)
+    # bg_tasks.add_task(mail.send_message, message)
+    send_email.delay([email], "Verify Your Email - Bookly", html_message)
+
     return {
         "message": "Account Created Successfully! Check your email to verify your account.",
         "user": new_user
@@ -136,7 +141,7 @@ async def revoke_token(token_details: dict = Depends(AccessTokenBearer())):
     )
 
 @auth_router.post("/reset_password_request")
-async def reset_password_request(email: PasswordResetRequest):
+async def reset_password_request(email: PasswordResetRequest, bg_tasks: BackgroundTasks):
     token = create_url_safe_token({"email": email.email})
     link = f"http://{Config.DOMAIN}/api/v1/auth/reset_password/{token}"
 
@@ -145,9 +150,11 @@ async def reset_password_request(email: PasswordResetRequest):
     <p>Please click the link below to reset your password:</p>
     <a href="{link}">Reset Password</a>
     """
-    message = create_message([email.email], "Reset Your Password - Bookly", html_message)
+    # message = create_message([email.email], "Reset Your Password - Bookly", html_message)
 
-    await mail.send_message(message)
+    # bg_tasks.add_task(mail.send_message, message)
+    send_email.delay([email.email], "Reset Your Password - Bookly", html_message)
+    
     return JSONResponse(
         content={
             "message": "Please check your email for instructions to reset your password."
