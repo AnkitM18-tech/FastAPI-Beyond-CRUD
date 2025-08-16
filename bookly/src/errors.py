@@ -70,6 +70,12 @@ class ReviewNotFound(BooklyException):
     """
     pass
 
+class AccountNotVerified(BooklyException):
+    """
+    Account Not Verified
+    """
+    pass
+
 def create_exception_handler(status_code: int, initial_detail: Any) -> Callable[[Request, Exception], JSONResponse]:
     async def exception_handler(request: Request, exception: BooklyException) -> JSONResponse:
         return JSONResponse(status_code=status_code, content=initial_detail)
@@ -116,6 +122,11 @@ def register_all_errors(app: FastAPI):
     app.add_exception_handler(
         RefreshTokenRequired,
         create_exception_handler(status_code=status.HTTP_403_FORBIDDEN, initial_detail={"message": "Please provide a valid Refresh Token", "error_code": "REFRESH_TOKEN_REQUIRED", "resolution": "Please get a new refresh token"})
+    )
+
+    app.add_exception_handler(
+        AccountNotVerified,
+        create_exception_handler(status_code=status.HTTP_403_FORBIDDEN, initial_detail={"message": "Account not verified", "error_code": "ACCOUNT_NOT_VERIFIED", "resolution": "Please verify your account"})
     )
 
     @app.exception_handler(500)
