@@ -10,7 +10,7 @@ from src.db.redis import token_in_blocklist
 from src.db.main import get_session
 from .service import UserService
 from src.db.models import User
-from src.errors import InvalidToken,AccessTokenRequired, RefreshTokenRequired,InsufficientPermission
+from src.errors import InvalidToken,AccessTokenRequired, RefreshTokenRequired,InsufficientPermission, AccountNotVerified
 
 user_service = UserService()
 
@@ -62,6 +62,8 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     async def __call__(self, current_user: User= Depends(get_current_user)):
+        if not current_user.is_verified:
+            raise AccountNotVerified()
         if current_user.role not in self.allowed_roles:
             raise InsufficientPermission()
         return True
