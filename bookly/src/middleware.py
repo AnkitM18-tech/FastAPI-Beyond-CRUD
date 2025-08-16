@@ -19,11 +19,11 @@ def register_middleware(app: FastAPI):
         print(message)
         return response
     
-    @app.middleware("http")
-    async def authorization(request: Request, call_next):
-        if "Authorization" not in request.headers:
-            return JSONResponse(status_code=401, content={"message": "Missing Authorization Header", "resolution": "Please provide the right credentials to proceed"})
-        return await call_next(request)
+    # @app.middleware("http")
+    # async def authorization(request: Request, call_next):
+    #     if "Authorization" not in request.headers:
+    #         return JSONResponse(status_code=401, content={"message": "Missing Authorization Header", "resolution": "Please provide the right credentials to proceed"})
+    #     return await call_next(request)
     
     app.add_middleware(
         CORSMiddleware,
